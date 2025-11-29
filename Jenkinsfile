@@ -130,6 +130,9 @@ EOF
                         passwordVariable: 'GIT_PASSWORD'
                     )]) {
                         sh '''
+                            # Fix Git safe directory issue (CVE-2022-24765)
+                            git config --global --add safe.directory ${WORKSPACE}
+
                             git config --global user.email "jenkins@example.com"
                             git config --global user.name "Jenkins CI"
 
