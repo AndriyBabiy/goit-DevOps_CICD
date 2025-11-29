@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  repository: ""  # Will be set during install: ECR_URL
+  repository: "PLACEHOLDER_ECR_URL"
   tag: "latest"
   pullPolicy: Always
 

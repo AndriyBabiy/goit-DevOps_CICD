@@ -7,6 +7,14 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.23"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.11"
+    }
   }
 }
 
@@ -70,7 +78,7 @@ module "eks" {
   vpc_id              = module.vpc.vpc_id
   subnet_ids          = module.vpc.private_subnet_ids
 
-  node_instance_types = ["t3.micro"]
+  node_instance_types = ["t3.small"]  # t3.micro only supports 4 pods/node - not enough for Jenkins+ArgoCD
   node_desired_size   = 2
   node_min_size       = 1
   node_max_size       = 3
@@ -78,4 +86,78 @@ module "eks" {
   tags = {
     Purpose = "Kubernetes Cluster"
   }
+}
+
+# Data source to get EKS cluster auth
+data "aws_eks_cluster" "cluster" {
+  name       = module.eks.cluster_name
+  depends_on = [module.eks]
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name       = module.eks.cluster_name
+  depends_on = [module.eks]
+}
+
+# Kubernetes Provider
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+# Helm Provider
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
+# Jenkins Module (NEW for lesson-9)
+module "jenkins" {
+  source = "./modules/jenkins"
+
+  namespace      = "jenkins"
+  release_name   = "jenkins"
+  service_type   = "ClusterIP"  # Use port-forward to save on LoadBalancer costs
+
+  # Reduced resources for t3.micro
+  controller_resources = {
+    requests_cpu    = "200m"
+    requests_memory = "256Mi"
+    limits_cpu      = "400m"
+    limits_memory   = "512Mi"
+  }
+
+  # Plugin names without versions - Jenkins will resolve compatible versions
+  install_plugins = [
+    "kubernetes",
+    "workflow-aggregator",
+    "git",
+    "configuration-as-code"
+  ]
+
+  tags = {
+    Purpose = "CI Server"
+  }
+
+  depends_on = [module.eks]
+}
+
+# ArgoCD Module (NEW for lesson-9)
+module "argocd" {
+  source = "./modules/argocd"
+
+  namespace           = "argocd"
+  release_name        = "argocd"
+  server_service_type = "ClusterIP"  # Use port-forward to save on LoadBalancer costs
+  server_insecure     = true          # Disable TLS for demo
+
+  tags = {
+    Purpose = "GitOps CD"
+  }
+
+  depends_on = [module.eks]
 }
