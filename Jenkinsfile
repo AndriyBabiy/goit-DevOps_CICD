@@ -86,9 +86,11 @@ pipeline {
                 container('kaniko') {
                     script {
                         // Create docker config for ECR - read from shared WORKSPACE
+                        // IMPORTANT: Use 'tr -d' to remove newlines from base64 output
+                        // BusyBox base64 wraps at 76 chars, which breaks JSON parsing
                         sh '''
                             ECR_PASSWORD=$(cat ${WORKSPACE}/ecr-password)
-                            AUTH=$(echo -n "AWS:${ECR_PASSWORD}" | base64)
+                            AUTH=$(echo -n "AWS:${ECR_PASSWORD}" | base64 | tr -d '\n')
 
                             cat > /kaniko/.docker/config.json << EOF
 {
