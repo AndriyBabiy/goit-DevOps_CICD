@@ -1,0 +1,44 @@
+# Application settings
+replicaCount: 2
+
+image:
+  repository: ""  # Will be set during install: ECR_URL
+  tag: "latest"
+  pullPolicy: Always
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+# Resource limits (reduced for t3.micro)
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Environment variables (from ConfigMap)
+config:
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  DATABASE_HOST: "db"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "django_db"
+  DATABASE_USER: "django_user"
+
+# Secrets (reference only - create separately)
+secrets:
+  databasePassword: "django_password"
+  
