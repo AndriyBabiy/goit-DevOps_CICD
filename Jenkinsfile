@@ -72,9 +72,9 @@ pipeline {
             steps {
                 container('aws-cli') {
                     script {
-                        // Get ECR login token
+                        // Get ECR login token - use WORKSPACE (shared between containers)
                         sh '''
-                            aws ecr get-login-password --region ${AWS_REGION} > /tmp/ecr-password
+                            aws ecr get-login-password --region ${AWS_REGION} > ${WORKSPACE}/ecr-password
                         '''
                     }
                 }
@@ -85,9 +85,9 @@ pipeline {
             steps {
                 container('kaniko') {
                     script {
-                        // Create docker config for ECR
+                        // Create docker config for ECR - read from shared WORKSPACE
                         sh '''
-                            ECR_PASSWORD=$(cat /tmp/ecr-password)
+                            ECR_PASSWORD=$(cat ${WORKSPACE}/ecr-password)
                             AUTH=$(echo -n "AWS:${ECR_PASSWORD}" | base64)
 
                             cat > /kaniko/.docker/config.json << EOF
