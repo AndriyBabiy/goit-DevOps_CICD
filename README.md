@@ -96,3 +96,4 @@ goit-DevOps_CICD/              # Repository root
 | Service | LoadBalancer for external access |
 | ConfigMap | Environment variables |
 | HPA | Auto-scales 2-5 pods based on load |
+# Test CI
