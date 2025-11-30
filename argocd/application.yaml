@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: django-app
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/$\{GITHUB_USERNAME\}/goit-DevOps_CICD.git
+    targetRevision: lesson-9
+    path: charts/django-app
+
+    helm:
+      valueFiles:
+        - values.yaml
+      # Override image repository (keeps AWS account ID out of values.yaml)
+      parameters:
+        - name: image.repository
+          value: 520320207845.dkr.ecr.eu-central-1.amazonaws.com/goit-devops-app
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true       # Delete resources that are no longer in Git
+      selfHeal: true    # Revert manual changes automatically
+    syncOptions:
+      - CreateNamespace=true
