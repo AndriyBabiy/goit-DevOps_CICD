@@ -69,3 +69,22 @@ output "argocd_port_forward_command" {
   description = "Command to port-forward ArgoCD"
   value       = module.argocd.port_forward_command
 }
+
+# =============================================================================
+# DATABASE OUTPUTS
+# =============================================================================
+
+output "database_endpoint" {
+  description = "Database connection endpoint"
+  value       = module.rds.connection_endpoint
+}
+
+output "database_connection_string" {
+  description = "Database connection string template"
+  value       = module.rds.connection_string
+}
+
+output "database_security_group_id" {
+  description = "Database security group ID"
+  value       = module.rds.security_group_id
+}

@@ -50,7 +50,8 @@ goit-DevOps_CICD/
 │   ├── ecr/                   # Container registry
 │   ├── eks/                   # Kubernetes cluster
 │   ├── jenkins/               # Jenkins CI server (Helm)
-│   └── argocd/                # ArgoCD GitOps (Helm)
+│   ├── argocd/                # ArgoCD GitOps (Helm)
+│   └── rds/                   # Database (RDS/Aurora)
 │
 ├── charts/
 │   └── django-app/            # Helm chart
@@ -156,6 +157,7 @@ argocd app create django-app \
 |-----------|---------|
 | EKS Cluster | Managed Kubernetes |
 | ECR | Docker image registry |
+| RDS/Aurora | Managed database (PostgreSQL/MySQL) |
 | Jenkins | CI - builds images, pushes to ECR, updates Git |
 | ArgoCD | CD - syncs Git state to Kubernetes |
 | Kaniko | Rootless Docker builds inside Kubernetes |
@@ -163,6 +165,113 @@ argocd app create django-app \
 | Service | LoadBalancer for external access |
 | ConfigMap | Environment variables |
 | HPA | Auto-scales 2-5 pods based on load |
+
+---
+
+## RDS Database Module
+
+Universal Terraform module supporting both **Aurora Cluster** and **Standard RDS Instance**.
+
+### Module Usage Example
+
+```hcl
+module "rds" {
+  source = "./modules/rds"
+
+  # General
+  identifier = "my-app-db"
+  use_aurora = false  # true = Aurora Cluster, false = RDS Instance
+
+  # Network
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  # Engine
+  engine         = "postgres"
+  engine_version = "15.13"
+  instance_class = "db.t3.micro"
+
+  # Database
+  database_name   = "myapp"
+  master_username = "dbadmin"
+  master_password = var.db_password
+
+  # Security
+  allowed_cidr_blocks = [module.vpc.vpc_cidr]
+
+  # Parameter Group
+  parameter_group_family = "postgres15"
+}
+```
+
+### Variable Descriptions
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `identifier` | string | - | Unique identifier for all database resources |
+| `use_aurora` | bool | `false` | `true` = Aurora Cluster, `false` = RDS Instance |
+| `vpc_id` | string | - | VPC ID for security group |
+| `subnet_ids` | list | - | Subnet IDs for DB subnet group (min 2 AZs) |
+| `engine` | string | `"postgres"` | Engine: `postgres`, `mysql`, `aurora-postgresql`, `aurora-mysql` |
+| `engine_version` | string | `"15.13"` | Database engine version |
+| `instance_class` | string | `"db.t3.micro"` | Instance size (Aurora requires `db.t3.medium`+) |
+| `database_name` | string | - | Default database name |
+| `master_username` | string | `"dbadmin"` | Master username |
+| `master_password` | string | - | Master password (sensitive) |
+| `port` | number | `5432` | Database port (3306 for MySQL) |
+| `multi_az` | bool | `false` | Multi-AZ deployment (RDS only) |
+| `aurora_instance_count` | number | `2` | Aurora instances (1 writer + N-1 readers) |
+| `parameter_group_family` | string | `"postgres15"` | Must match engine version |
+
+### Changing Database Configuration
+
+#### Switch Between RDS and Aurora
+
+```hcl
+# Standard RDS Instance
+use_aurora = false
+engine     = "postgres"
+
+# Aurora Cluster
+use_aurora = true
+engine     = "aurora-postgresql"
+```
+
+> **Warning:** Changing `use_aurora` destroys and recreates the database!
+
+#### Change Database Engine
+
+```hcl
+# PostgreSQL (default)
+engine                 = "postgres"
+port                   = 5432
+parameter_group_family = "postgres15"
+
+# MySQL
+engine                 = "mysql"
+port                   = 3306
+parameter_group_family = "mysql8.0"
+```
+
+#### Change Instance Class
+
+```hcl
+instance_class = "db.t3.micro"   # Development
+instance_class = "db.t3.medium"  # Production (required for Aurora)
+instance_class = "db.r6g.large"  # High-performance
+```
+
+#### Enable High Availability
+
+```hcl
+# RDS Instance
+multi_az = true
+
+# Aurora
+aurora_instance_count = 3  # 1 writer + 2 readers
+```
+
+---
 
 ## Known Issues & Troubleshooting
 

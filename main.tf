@@ -161,3 +161,54 @@ module "argocd" {
 
   depends_on = [module.eks]
 }
+
+# RDS DATABASE MODULE
+module "rds" {
+  source = "./modules/rds"
+
+  # General
+  identifier = "${var.project_name}-db-${var.environment}"
+  use_aurora = var.use_aurora  # Toggle between Aurora and RDS Instance
+
+  # Network (from VPC module)
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  # Allow access from within VPC (EKS nodes, etc.)
+  allowed_cidr_blocks = [module.vpc.vpc_cidr]
+
+  # Engine Configuration
+  engine         = var.db_engine
+  engine_version = var.db_engine_version
+  instance_class = var.db_instance_class
+
+  # Database Settings
+  database_name   = var.db_name
+  master_username = var.db_username
+  master_password = var.db_password
+
+  # High Availability
+  multi_az              = var.environment == "prod" ? true : false
+  aurora_instance_count = var.use_aurora ? 2 : 0
+
+  # Backup
+  backup_retention_period = var.environment == "prod" ? 14 : 7
+
+  # Parameter Group Family
+  # Handles: postgres→postgres15, aurora-postgresql→aurora-postgresql15, mysql→aurora-mysql8, etc.
+  parameter_group_family = (
+    var.use_aurora
+    ? (
+        # Engine already has aurora- prefix (e.g., "aurora-postgresql")
+        startswith(var.db_engine, "aurora-")
+        ? "${var.db_engine}${split(".", var.db_engine_version)[0]}"
+        # Engine is "postgres" - needs postgresql spelling for Aurora
+        : (var.db_engine == "postgres"
+           ? "aurora-postgresql${split(".", var.db_engine_version)[0]}"
+           : "aurora-${var.db_engine}${split(".", var.db_engine_version)[0]}")
+      )
+    : "${var.db_engine}${split(".", var.db_engine_version)[0]}"
+  )
+
+  depends_on = [module.vpc]
+}
