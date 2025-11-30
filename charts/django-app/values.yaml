@@ -3,7 +3,7 @@ replicaCount: 2
 
 image:
   repository: "PLACEHOLDER_ECR_URL"
-  tag: "7"
+  tag: "2"
   pullPolicy: Always
 
 # Service configuration
