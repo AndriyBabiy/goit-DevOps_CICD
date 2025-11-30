@@ -39,7 +39,7 @@ pipeline {
         AWS_REGION = 'eu-central-1'
         ECR_REPOSITORY = 'goit-devops-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        GIT_BRANCH = 'lesson-9'
+        GIT_BRANCH = 'final_project'
         // ECR_REGISTRY and AWS_ACCOUNT_ID are set dynamically in 'Setup Environment' stage
     }
 

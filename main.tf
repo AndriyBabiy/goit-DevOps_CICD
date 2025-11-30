@@ -123,12 +123,12 @@ module "jenkins" {
   release_name   = "jenkins"
   service_type   = "ClusterIP"  # Use port-forward to save on LoadBalancer costs
 
-  # Reduced resources for t3.micro
+  # Resources for t3.small nodes
   controller_resources = {
-    requests_cpu    = "200m"
-    requests_memory = "256Mi"
-    limits_cpu      = "400m"
-    limits_memory   = "512Mi"
+    requests_cpu    = "250m"
+    requests_memory = "512Mi"
+    limits_cpu      = "1000m"
+    limits_memory   = "1Gi"
   }
 
   # Plugin names without versions - Jenkins will resolve compatible versions

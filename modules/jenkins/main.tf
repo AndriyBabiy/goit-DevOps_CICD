@@ -42,6 +42,8 @@ resource "helm_release" "jenkins" {
   repository = "https://charts.jenkins.io"
   chart      = "jenkins"
   version    = var.chart_version
+  timeout = 600
+  wait    = false  # Don't wait - Terraform completes immediately, diagnose Jenkins manually
 
   values = [
     yamlencode({
@@ -71,6 +73,18 @@ resource "helm_release" "jenkins" {
           defaultConfig = true
         }
 
+        # Startup probe - allow more time for Jenkins to initialize on small instances
+        startupProbe = {
+          httpGet = {
+            path = "/login"
+            port = "http"
+          }
+          initialDelaySeconds = 120    # Wait 2 min before first check
+          periodSeconds       = 15     # Check every 15 seconds
+          timeoutSeconds      = 5
+          failureThreshold    = 30     # Allow 30 failures (~7.5 min window)
+        }
+
         # Init container needs more memory for plugin downloads
         initContainerResources = {
           requests = {
@@ -85,9 +99,7 @@ resource "helm_release" "jenkins" {
       }
 
       persistence = {
-        enabled      = true
-        storageClass = var.storage_class
-        size         = var.storage_size
+        enabled = false  # Disabled - EBS CSI driver not installed on EKS
       }
 
       serviceAccount = {

@@ -147,7 +147,7 @@ argocd app create django-app \
     --sync-policy automated \
     --auto-prune \
     --self-heal \
-    --revision lesson-9 \
+    --revision final_project \
     --helm-set image.repository=$ECR_URL
 ```
 
@@ -290,6 +290,14 @@ The following bugs may occur when running the Jenkins pipeline:
 
 - **t3.micro won't work** - Only supports 4 pods/node. Use t3.small minimum (11 pods/node)
 - **Jenkins liveness probe timeout** - May restart during builds on resource-constrained nodes
+
+### Jenkins Deployment Issues
+
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| Helm timeout | `context deadline exceeded` during terraform apply | Set `wait = false` in `modules/jenkins/main.tf` |
+| PVC stuck Pending | Jenkins pod stuck in Pending, PVC not bound | Disable persistence (`enabled = false`) - EBS CSI driver not installed |
+| Pod not recreating | Config changes not applied after helm update | Delete pod manually: `kubectl delete pod jenkins-0 -n jenkins` |
 
 ## Cleanup
 
